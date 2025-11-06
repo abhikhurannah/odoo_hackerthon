@@ -16,30 +16,28 @@ export function useSwapRequests(userId?: string) {
     if (!userId) return;
 
     try {
-      const { data: requests, error } = await supabase
-        .from('swap_requests')
-        .select('*')
-        .or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`)
-        .order('created_at', { ascending: false });
+      // Use mock data since swap_requests table doesn't exist yet
+      // In a real app, this would fetch from supabase swap_requests table
+      const mockRequests: SwapRequest[] = [
+        {
+          id: 'mock-request-1',
+          fromUserId: 'mock-user-1',
+          toUserId: userId,
+          skillOffered: 'React',
+          skillWanted: 'Python',
+          message: 'Hi! I\'d love to learn Python from you. I can teach you React in exchange.',
+          status: 'pending',
+          createdAt: '2024-11-05T10:00:00Z',
+          updatedAt: '2024-11-05T10:00:00Z'
+        }
+      ];
 
-      if (error) {
-        console.error('Error fetching swap requests:', error);
-        return;
-      }
+      // Only show mock requests if current user is involved
+      const filteredRequests = mockRequests.filter(req => 
+        req.fromUserId === userId || req.toUserId === userId
+      );
 
-      const formattedRequests: SwapRequest[] = requests.map(request => ({
-        id: request.id,
-        fromUserId: request.from_user_id,
-        toUserId: request.to_user_id,
-        skillOffered: request.skill_offered,
-        skillWanted: request.skill_wanted,
-        message: request.message || '',
-        status: request.status,
-        createdAt: request.created_at,
-        updatedAt: request.updated_at
-      }));
-
-      setSwapRequests(formattedRequests);
+      setSwapRequests(filteredRequests);
     } catch (error) {
       console.error('Error in fetchSwapRequests:', error);
     } finally {
@@ -56,23 +54,26 @@ export function useSwapRequests(userId?: string) {
     if (!userId) return false;
 
     try {
-      const { error } = await supabase
-        .from('swap_requests')
-        .insert({
-          from_user_id: userId,
-          to_user_id: data.toUserId,
-          skill_offered: data.skillOffered,
-          skill_wanted: data.skillWanted,
-          message: data.message
-        });
+      // Mock creation - in real app this would insert to supabase
+      console.log('Mock: Creating swap request', data);
+      
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Add mock request to current state
+      const mockRequest: SwapRequest = {
+        id: `mock-request-${Date.now()}`,
+        fromUserId: userId,
+        toUserId: data.toUserId,
+        skillOffered: data.skillOffered,
+        skillWanted: data.skillWanted,
+        message: data.message,
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
 
-      if (error) {
-        console.error('Error creating swap request:', error);
-        return false;
-      }
-
-      // Refresh requests
-      await fetchSwapRequests();
+      setSwapRequests(prev => [mockRequest, ...prev]);
       return true;
     } catch (error) {
       console.error('Error in createSwapRequest:', error);

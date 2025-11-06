@@ -19,7 +19,7 @@ export function useAuth() {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (_event, session) => {
         if (session?.user) {
           await fetchUserProfile(session.user);
         } else {
@@ -34,72 +34,23 @@ export function useAuth() {
 
   const fetchUserProfile = async (supabaseUser: SupabaseUser) => {
     try {
+      console.log('🔄 Setting up user profile for:', supabaseUser.email);
+      
+      // Skip database profile fetch since tables don't exist yet
+      // Create a basic user profile from auth data
       const isAdminEmail = supabaseUser.email === 'admin@skillshare.com';
-      let profile: any = null;
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', supabaseUser.id)
-        .single();
-
-      if (error) {
-        if (error.code === 'PGRST116') {
-          // Profile doesn't exist — create it
-          const profileInsertData = {
-            id: supabaseUser.id,
-            name: isAdminEmail
-              ? 'Admin User'
-              : supabaseUser.user_metadata?.name ?? 'New User',
-            is_admin: isAdminEmail,
-            is_online: true,
-            avatar_url: `https://images.pexels.com/photos/1586996/pexels-photo-1586996.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop`,
-            skills_offered: isAdminEmail
-              ? ['Platform Management', 'Community Building']
-              : [],
-            skills_wanted: isAdminEmail
-              ? ['User Feedback', 'Feature Suggestions']
-              : [],
-            availability: isAdminEmail ? ['24/7'] : [],
-            rating: isAdminEmail ? 5.0 : 0,
-            total_swaps: 0
-          };
-
-          console.log('📤 Inserting new profile:', profileInsertData);
-
-          const { data: newProfile, error: createError } = await supabase
-            .from('profiles')
-            .insert(profileInsertData)
-            .select()
-            .single();
-
-          if (createError) {
-            console.error('❌ Error creating profile:', createError.message, createError.details);
-            setLoading(false);
-            return;
-          }
-
-          profile = newProfile;
-        } else {
-          console.error('❌ Error fetching profile:', error.message, error.details);
-          setLoading(false);
-          return;
-        }
-      } else {
-        profile = data;
-      }
-
-      if (profile) {
-        setUser({
-          id: profile.id,
-          name: profile.name,
-          email: supabaseUser.email || '',
-          avatar:
-            profile.avatar_url ||
-            `https://images.pexels.com/photos/1586996/pexels-photo-1586996.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop`,
-          isAdmin: profile.is_admin
-        });
-      }
+      
+      setUser({
+        id: supabaseUser.id,
+        name: supabaseUser.user_metadata?.name || 
+              supabaseUser.email?.split('@')[0] || 
+              'User',
+        email: supabaseUser.email || '',
+        avatar: `https://images.pexels.com/photos/1586996/pexels-photo-1586996.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop`,
+        isAdmin: isAdminEmail
+      });
+      
+      console.log('✅ User profile set successfully');
     } catch (error) {
       console.error('❌ Error in fetchUserProfile:', error);
     } finally {
@@ -151,7 +102,7 @@ export function useAuth() {
       });
 
       if (error) {
-        console.error('❌ Supabase signin error:', error.message, error.details);
+        console.error('❌ Supabase signin error:', error.message);
         throw new Error(error.message || 'Failed to sign in');
       }
 
